@@ -3,245 +3,285 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 tfd = tfp.distributions
 
-def cnn_entities(ds_encoder,ds_decoder,last_layer_decoder_activation,ds_nn,last_layer_nn_activation,samples_shape):
-  encoder = []
-  for i in range(0,len(ds_encoder)):
-    if i == 0:
-      input_shape = samples_shape[1:]
-      encoder.append(tf.keras.layers.Conv2D(filters=ds_encoder[i], input_shape = input_shape, kernel_size=(3,3), padding='same'))
-    else:
-      encoder.append(tf.keras.layers.Conv2D(filters=ds_encoder[i], kernel_size=(3,3), padding='same'))
-    
-    encoder.append(default_activation)
-    encoder.append(tf.keras.layers.MaxPooling2D(pool_size=(2,2)))
-  encoder = tf.keras.models.Sequential(encoder)
+import matplotlib.pyplot as plt
+import numpy as np
 
-  decoder = []
-  for i in range(0,len(ds_decoder)):
-    if i == 0:
-      if len(encoder.layers) > 0:
-        input_shape = encoder.output_shape[1:]
-      else:
+def main(samples,
+    ae_type,
+    dist_type,
+    encoder_depth,
+    nn_depth,
+    id,
+    directory,
+    lambdaa,
+    cl_loss_type,
+    var_features,
+    var_locs,
+    reg_logits,
+    kl_loss,
+    logits_trainable,
+    locs_trainable,
+    covs_trainable,
+    loc_inner_value,
+    number_of_dist,
+    BATCH_SIZE,
+    SHUFFLE_BUFFER_SIZE,
+    prob_d,
+    last_layer_decoder_activation,
+    last_layer_nn_activation,
+    default_activation,
+    plot_at_each_iteration,
+    ds_encoder,
+    ds_nn,
+    optimizer,
+    epochs):
+
+  def cnn_entities(ds_encoder,ds_decoder,last_layer_decoder_activation,ds_nn,last_layer_nn_activation,samples_shape):
+    encoder = []
+    for i in range(0,len(ds_encoder)):
+      if i == 0:
         input_shape = samples_shape[1:]
-      decoder.append(tf.keras.layers.Conv2D(filters=ds_decoder[i], input_shape = input_shape, kernel_size=(3,3), padding='same'))
-    else:
-      decoder.append(tf.keras.layers.Conv2D(filters=ds_decoder[i], kernel_size=(3,3), padding='same'))
-    # if i == len(ds_decoder) - 1:
-    #   decoder.append(last_layer_decoder_activation)
-    # else:
-    decoder.append(default_activation)
-    decoder.append(tf.keras.layers.UpSampling2D(size=(2,2)))
-  if len(ds_decoder) > 0:
-    decoder.append(tf.keras.layers.Conv2D(filters=1, kernel_size=(3,3), padding='same'))
-    decoder.append(last_layer_decoder_activation)
-  decoder = tf.keras.models.Sequential(decoder)
+        encoder.append(tf.keras.layers.Conv2D(filters=ds_encoder[i], input_shape = input_shape, kernel_size=(3,3), padding='same'))
+      else:
+        encoder.append(tf.keras.layers.Conv2D(filters=ds_encoder[i], kernel_size=(3,3), padding='same'))
+      
+      encoder.append(default_activation)
+      encoder.append(tf.keras.layers.MaxPooling2D(pool_size=(2,2)))
+    encoder = tf.keras.models.Sequential(encoder)
 
-  if len(encoder.layers) == 0:
-    autoencoder = tf.keras.models.Sequential([])
-  else:
-    autoencoder = tf.keras.models.Sequential([encoder, decoder])
-
-  if len(encoder.layers) > 0:
-    nn = [tf.keras.layers.Flatten(input_shape=encoder.output_shape[1:])]
-  else:
-    nn = [tf.keras.layers.Flatten(input_shape=samples_shape[1:])]
-  for i in range(0,len(ds_nn)):
-    # nn.append(tf.keras.layers.Dense(ds_nn[i], kernel_regularizer=tf.keras.regularizers.l2()))
-    nn.append(tf.keras.layers.Dense(ds_nn[i], kernel_initializer="glorot_uniform"))
-    if i == len(ds_nn) - 1:
-      nn.append(last_layer_nn_activation)
-    else:
-      nn.append(default_activation)
-  nn = tf.keras.models.Sequential(nn)
-
-  return autoencoder, encoder, decoder, nn
-
-
-def mlp_entities(ds_encoder,ds_decoder,last_layer_decoder_activation,ds_nn,last_layer_nn_activation):
-  encoder = []
-  for i in range(1,len(ds_encoder)):
-    encoder.append(tf.keras.layers.Dense(ds_encoder[i], input_shape=[ds_encoder[i-1]]))
-    encoder.append(default_activation)
-  encoder = tf.keras.models.Sequential(encoder)
-
-  decoder = []
-  for i in range(1,len(ds_decoder)):
-    decoder.append(tf.keras.layers.Dense(ds_decoder[i], input_shape=[ds_decoder[i-1]]))
-    if i == len(ds_decoder) - 1:
-      decoder.append(last_layer_decoder_activation)
-    else:
-      decoder.append(default_activation)
-  decoder = tf.keras.models.Sequential(decoder)
-
-  if len(encoder.layers) == 0:
-    autoencoder = tf.keras.models.Sequential([])
-  else:
-    autoencoder = tf.keras.models.Sequential([encoder, decoder])
-
-  nn = []
-  for i in range(1,len(ds_nn)):
-    # nn.append(tf.keras.layers.Dense(ds_nn[i], input_shape=[ds_nn[i-1]], kernel_regularizer=tf.keras.regularizers.l2()))
-    # nn.append(tf.keras.layers.Dense(ds_nn[i], input_shape=[ds_nn[i-1]]))
-    nn.append(tf.keras.layers.Dense(ds_nn[i], input_shape=[ds_nn[i-1]], kernel_initializer="glorot_uniform"))
-    if i == len(ds_nn) - 1:
-      nn.append(last_layer_nn_activation)
-    else:
-      nn.append(default_activation)
-  nn = tf.keras.models.Sequential(nn)
-
-  return autoencoder, encoder, decoder, nn
-
-
-
-
-
-def save(epoch=None):
-  if epoch is None:  
-    with open(os.path.join(directory,"clustering.pickle"), 'wb') as handle:
-        pickle.dump(clustering, handle)
-  else:
-    if len(nn.layers) > 0:
-      nn.save(os.path.join(directory,"nn.h5"))
-    if len(autoencoder.layers) > 0:
-      encoder.save(os.path.join(directory,"encoder.h5"))
-      decoder.save(os.path.join(directory,"decoder.h5"))
-      autoencoder.save(os.path.join(directory,"autoencoder.h5"))
-
-    import pickle
-    with open(os.path.join(directory,"dist_parameters.pickle"), 'wb') as handle:
-        pickle.dump([logits.numpy(),
-                    [locs[i].numpy() for i in range(number_of_dist)],
-                    [tf.convert_to_tensor(scale_trils[i]).numpy() for i in range(number_of_dist)]], handle)
-
-    with open(os.path.join(directory,"losses.pickle"), 'wb') as handle:
-        pickle.dump(losses, handle)
-
-    file = open(os.path.join(directory,"epoch.txt"),"w")
-    file.write(str(epoch))
-    file.close()
-
-
-def cdist(A,B):
-  # from https://stackoverflow.com/questions/43839120/compute-the-pairwise-distance-between-each-pair-of-the-two-collections-of-inputs
-
-  p1 = tf.matmul(
-      tf.expand_dims(tf.reduce_sum(tf.square(A), 1), 1),
-      tf.ones(shape=(1, len(B)))
-  )
-  p2 = tf.transpose(tf.matmul(
-      tf.reshape(tf.reduce_sum(tf.square(B), 1), shape=[-1, 1]),
-      tf.ones(shape=(len(A), 1)),
-      transpose_b=True
-  ))
-
-  res = (tf.add(p1, p2) - 2 * tf.matmul(A, B, transpose_b=True))
-
-  return res
-
-
-def nll(dist, samples):
-    return -tf.reduce_mean(dist.log_prob(samples))
-
-def mse(x,y):
-  return tf.keras.losses.MeanSquaredError()(x,y)
-
-@tf.function
-def get_loss_and_grads(dist, nn, encoder, decoder, inputs, trainable_variables, lambdaa, cl_loss_type, var_features, var_locs, reg_logits, kl_loss):
-    with tf.GradientTape() as tape:
-        tape.watch(trainable_variables)
-        z = encoder(inputs)
-        reconstructed_inputs = decoder(z)
-        x = nn(z)
-        # kl_loss = 0
-        # for i in range(len(dist.components)-1):
-        #   for j in range(i+1,len(dist.components)):
-        #     kl_loss += tfd.kl_divergence(dist.components[i],dist.components[j])
-        # loss = nll(dist, x) + mse(inputs,reconstructed_inputs) -tf.reduce_mean(tf.math.reduce_std(x,axis=0))#-kl_loss + mse(tf.nn.softmax(logits), [1/number_of_dist for i in range(number_of_dist)]) -tf.reduce_mean(tf.math.reduce_std(x,axis=0))#-tf.reduce_mean(tf.math.reduce_std(locs,axis=0))
-        # loss = 0
-        # for i in range(len(locs)):
-        #   loss += tf.reduce_mean(tf.sqrt(tf.reduce_sum((x - locs[i])**2,axis=1)))
-        # loss /= len(locs)
-        # # loss *= 100.0
-        # loss += -tf.reduce_mean(tf.math.reduce_std(x,axis=0))
-        loss = 0
-        if cl_loss_type == "km":
-          dist_matrix = cdist(x,locs)
-          mask_clusters = tf.one_hot(tf.math.argmin(dist_matrix,axis=1),depth=dist_matrix.shape[1])
-          # lambdaa =np.math.pow(0.01,_/epochs)
-          loss+=tf.reduce_sum(dist_matrix * mask_clusters) / len(x) 
-        elif cl_loss_type == "gmm":
-          loss += nll(dist, x)
+    decoder = []
+    for i in range(0,len(ds_decoder)):
+      if i == 0:
+        if len(encoder.layers) > 0:
+          input_shape = encoder.output_shape[1:]
         else:
-          raise ValueError("cl_loss_type must be either km or gmm")
+          input_shape = samples_shape[1:]
+        decoder.append(tf.keras.layers.Conv2D(filters=ds_decoder[i], input_shape = input_shape, kernel_size=(3,3), padding='same'))
+      else:
+        decoder.append(tf.keras.layers.Conv2D(filters=ds_decoder[i], kernel_size=(3,3), padding='same'))
+      # if i == len(ds_decoder) - 1:
+      #   decoder.append(last_layer_decoder_activation)
+      # else:
+      decoder.append(default_activation)
+      decoder.append(tf.keras.layers.UpSampling2D(size=(2,2)))
+    if len(ds_decoder) > 0:
+      decoder.append(tf.keras.layers.Conv2D(filters=1, kernel_size=(3,3), padding='same'))
+      decoder.append(last_layer_decoder_activation)
+    decoder = tf.keras.models.Sequential(decoder)
 
-        if var_features:
-          loss += lambdaa*(-tf.reduce_mean(tf.math.reduce_std(x,axis=0)))
-        
-        if var_locs:
-          loss += (-tf.reduce_mean(tf.math.reduce_std(locs,axis=0)))
+    if len(encoder.layers) == 0:
+      autoencoder = tf.keras.models.Sequential([])
+    else:
+      autoencoder = tf.keras.models.Sequential([encoder, decoder])
 
-        if reg_logits:
-          loss += mse(tf.nn.softmax(logits), [1/number_of_dist for i in range(number_of_dist)])
+    if len(encoder.layers) > 0:
+      nn = [tf.keras.layers.Flatten(input_shape=encoder.output_shape[1:])]
+    else:
+      nn = [tf.keras.layers.Flatten(input_shape=samples_shape[1:])]
+    for i in range(0,len(ds_nn)):
+      # nn.append(tf.keras.layers.Dense(ds_nn[i], kernel_regularizer=tf.keras.regularizers.l2()))
+      nn.append(tf.keras.layers.Dense(ds_nn[i], kernel_initializer="glorot_uniform"))
+      if i == len(ds_nn) - 1:
+        nn.append(last_layer_nn_activation)
+      else:
+        nn.append(default_activation)
+    nn = tf.keras.models.Sequential(nn)
 
-        if kl_loss:
-          kl_loss = 0
-          for i in range(len(dist.components)-1):
-            for j in range(i+1,len(dist.components)):
-              kl_loss += tfd.kl_divergence(dist.components[i],dist.components[j])
-          loss += (-kl_loss)
-
-        # tf.print("km loss=",loss)
-        # tf.print("std loss=",loss2)
-        # loss+=lambdaa * loss2
-        if len(nn.layers) > 0:
-          loss+=mse(inputs,reconstructed_inputs)
-        
-        # tf.print(nn.trainable_variables)
-        # tf.print(loss)
-        # tf.print(dist_matrix)
-        # tf.print(locs)
-        # tf.print(x)
-        
-        grads = tape.gradient(loss, trainable_variables)
-        # tf.print("grads:",tf.reduce_sum(grads[0]))
-        # # tf.print("pre mask clusters:",tf.math.argmin(dist_matrix,axis=1),summarize=-1)
-        # tf.print("dist_matrix FULL:",dist_matrix,summarize=-1)
-        # for i in range(len(grads)):
-        #   if tf.math.is_nan(tf.reduce_sum(grads[i])):
-        #     tf.print("IS NAN")
-        # tf.print("dist_matrix:",tf.reduce_sum(dist_matrix))
-        # tf.print("make_clusters:",tf.reduce_sum(mask_clusters))
-        # tf.print(x)
-        # tf.print("loss1=",tf.reduce_sum(dist_matrix * mask_clusters) / len(x) )
-        # tf.print("loss2=",loss2)
-    return loss, grads
-
-def predict_clustering(cl_loss_type):
-  clustering = []
-  if cl_loss_type == "gmm":
-    dist_cat_log_probs = [dist.cat.log_prob(i) for i in range(number_of_dist)]
-    for batch in dataset_not_shuffled:
-      z = encoder(batch) 
-      x = nn(z)
-      dist_components_weigthed_log_probs = np.zeros((number_of_dist,len(batch)))
-      for i in range(number_of_dist):
-        dist_components_weigthed_log_probs[i,:] = dist_cat_log_probs[i] + dist.components[i].log_prob(x)
-      clustering += list(np.argmax(dist_components_weigthed_log_probs, axis=0))
-  elif cl_loss_type == "km":
-    for batch in dataset_not_shuffled:
-      z = encoder(batch)
-      x = nn(z)
-      dist_matrix = cdist(x,locs)
-      mask_clusters = tf.math.argmin(dist_matrix,axis=1).numpy()
-      clustering += list(mask_clusters)
-  else:
-    raise ValueError("cl_loss_type must be either km, or gmm")
-  return clustering
+    return autoencoder, encoder, decoder, nn
 
 
+  def mlp_entities(ds_encoder,ds_decoder,last_layer_decoder_activation,ds_nn,last_layer_nn_activation):
+    encoder = []
+    for i in range(1,len(ds_encoder)):
+      encoder.append(tf.keras.layers.Dense(ds_encoder[i], input_shape=[ds_encoder[i-1]]))
+      encoder.append(default_activation)
+    encoder = tf.keras.models.Sequential(encoder)
+
+    decoder = []
+    for i in range(1,len(ds_decoder)):
+      decoder.append(tf.keras.layers.Dense(ds_decoder[i], input_shape=[ds_decoder[i-1]]))
+      if i == len(ds_decoder) - 1:
+        decoder.append(last_layer_decoder_activation)
+      else:
+        decoder.append(default_activation)
+    decoder = tf.keras.models.Sequential(decoder)
+
+    if len(encoder.layers) == 0:
+      autoencoder = tf.keras.models.Sequential([])
+    else:
+      autoencoder = tf.keras.models.Sequential([encoder, decoder])
+
+    nn = []
+    for i in range(1,len(ds_nn)):
+      # nn.append(tf.keras.layers.Dense(ds_nn[i], input_shape=[ds_nn[i-1]], kernel_regularizer=tf.keras.regularizers.l2()))
+      # nn.append(tf.keras.layers.Dense(ds_nn[i], input_shape=[ds_nn[i-1]]))
+      nn.append(tf.keras.layers.Dense(ds_nn[i], input_shape=[ds_nn[i-1]], kernel_initializer="glorot_uniform"))
+      if i == len(ds_nn) - 1:
+        nn.append(last_layer_nn_activation)
+      else:
+        nn.append(default_activation)
+    nn = tf.keras.models.Sequential(nn)
+
+    return autoencoder, encoder, decoder, nn
 
 
-def main():
+
+
+
+  def save(epoch=None):
+    if epoch is None:  
+      with open(os.path.join(directory,"clustering.pickle"), 'wb') as handle:
+          pickle.dump(clustering, handle)
+    else:
+      if len(nn.layers) > 0:
+        nn.save(os.path.join(directory,"nn.h5"))
+      if len(autoencoder.layers) > 0:
+        encoder.save(os.path.join(directory,"encoder.h5"))
+        decoder.save(os.path.join(directory,"decoder.h5"))
+        autoencoder.save(os.path.join(directory,"autoencoder.h5"))
+
+      import pickle
+      with open(os.path.join(directory,"dist_parameters.pickle"), 'wb') as handle:
+          pickle.dump([logits.numpy(),
+                      [locs[i].numpy() for i in range(number_of_dist)],
+                      [tf.convert_to_tensor(scale_trils[i]).numpy() for i in range(number_of_dist)]], handle)
+
+      with open(os.path.join(directory,"losses.pickle"), 'wb') as handle:
+          pickle.dump(losses, handle)
+
+      file = open(os.path.join(directory,"epoch.txt"),"w")
+      file.write(str(epoch))
+      file.close()
+
+
+  def cdist(A,B):
+    # from https://stackoverflow.com/questions/43839120/compute-the-pairwise-distance-between-each-pair-of-the-two-collections-of-inputs
+
+    p1 = tf.matmul(
+        tf.expand_dims(tf.reduce_sum(tf.square(A), 1), 1),
+        tf.ones(shape=(1, len(B)))
+    )
+    p2 = tf.transpose(tf.matmul(
+        tf.reshape(tf.reduce_sum(tf.square(B), 1), shape=[-1, 1]),
+        tf.ones(shape=(len(A), 1)),
+        transpose_b=True
+    ))
+
+    res = (tf.add(p1, p2) - 2 * tf.matmul(A, B, transpose_b=True))
+
+    return res
+
+
+  def nll(dist, samples):
+      return -tf.reduce_mean(dist.log_prob(samples))
+
+  def mse(x,y):
+    return tf.keras.losses.MeanSquaredError()(x,y)
+
+  @tf.function
+  def get_loss_and_grads(dist, nn, encoder, decoder, inputs, trainable_variables, lambdaa, cl_loss_type, var_features, var_locs, reg_logits, kl_loss):
+      with tf.GradientTape() as tape:
+          tape.watch(trainable_variables)
+          z = encoder(inputs)
+          reconstructed_inputs = decoder(z)
+          x = nn(z)
+          # kl_loss = 0
+          # for i in range(len(dist.components)-1):
+          #   for j in range(i+1,len(dist.components)):
+          #     kl_loss += tfd.kl_divergence(dist.components[i],dist.components[j])
+          # loss = nll(dist, x) + mse(inputs,reconstructed_inputs) -tf.reduce_mean(tf.math.reduce_std(x,axis=0))#-kl_loss + mse(tf.nn.softmax(logits), [1/number_of_dist for i in range(number_of_dist)]) -tf.reduce_mean(tf.math.reduce_std(x,axis=0))#-tf.reduce_mean(tf.math.reduce_std(locs,axis=0))
+          # loss = 0
+          # for i in range(len(locs)):
+          #   loss += tf.reduce_mean(tf.sqrt(tf.reduce_sum((x - locs[i])**2,axis=1)))
+          # loss /= len(locs)
+          # # loss *= 100.0
+          # loss += -tf.reduce_mean(tf.math.reduce_std(x,axis=0))
+          loss = 0
+          if cl_loss_type == "km":
+            dist_matrix = cdist(x,locs)
+            mask_clusters = tf.one_hot(tf.math.argmin(dist_matrix,axis=1),depth=dist_matrix.shape[1])
+            # lambdaa =np.math.pow(0.01,_/epochs)
+            loss+=tf.reduce_sum(dist_matrix * mask_clusters) / len(x) 
+          elif cl_loss_type == "gmm":
+            loss += nll(dist, x)
+          else:
+            raise ValueError("cl_loss_type must be either km or gmm")
+
+          if var_features:
+            loss += lambdaa*(-tf.reduce_mean(tf.math.reduce_std(x,axis=0)))
+          
+          if var_locs:
+            loss += (-tf.reduce_mean(tf.math.reduce_std(locs,axis=0)))
+
+          if reg_logits:
+            loss += mse(tf.nn.softmax(logits), [1/number_of_dist for i in range(number_of_dist)])
+
+          if kl_loss:
+            kl_loss = 0
+            for i in range(len(dist.components)-1):
+              for j in range(i+1,len(dist.components)):
+                kl_loss += tfd.kl_divergence(dist.components[i],dist.components[j])
+            loss += (-kl_loss)
+
+          # tf.print("km loss=",loss)
+          # tf.print("std loss=",loss2)
+          # loss+=lambdaa * loss2
+          if len(nn.layers) > 0:
+            loss+=mse(inputs,reconstructed_inputs)
+          
+          # tf.print(nn.trainable_variables)
+          # tf.print(loss)
+          # tf.print(dist_matrix)
+          # tf.print(locs)
+          # tf.print(x)
+          
+          grads = tape.gradient(loss, trainable_variables)
+          # tf.print("grads:",tf.reduce_sum(grads[0]))
+          # # tf.print("pre mask clusters:",tf.math.argmin(dist_matrix,axis=1),summarize=-1)
+          # tf.print("dist_matrix FULL:",dist_matrix,summarize=-1)
+          # for i in range(len(grads)):
+          #   if tf.math.is_nan(tf.reduce_sum(grads[i])):
+          #     tf.print("IS NAN")
+          # tf.print("dist_matrix:",tf.reduce_sum(dist_matrix))
+          # tf.print("make_clusters:",tf.reduce_sum(mask_clusters))
+          # tf.print(x)
+          # tf.print("loss1=",tf.reduce_sum(dist_matrix * mask_clusters) / len(x) )
+          # tf.print("loss2=",loss2)
+      return loss, grads
+
+  def predict_clustering(cl_loss_type):
+    clustering = []
+    if cl_loss_type == "gmm":
+      dist_cat_log_probs = [dist.cat.log_prob(i) for i in range(number_of_dist)]
+      for batch in dataset_not_shuffled:
+        z = encoder(batch) 
+        x = nn(z)
+        dist_components_weigthed_log_probs = np.zeros((number_of_dist,len(batch)))
+        for i in range(number_of_dist):
+          dist_components_weigthed_log_probs[i,:] = dist_cat_log_probs[i] + dist.components[i].log_prob(x)
+        clustering += list(np.argmax(dist_components_weigthed_log_probs, axis=0))
+    elif cl_loss_type == "km":
+      for batch in dataset_not_shuffled:
+        z = encoder(batch)
+        x = nn(z)
+        dist_matrix = cdist(x,locs)
+        mask_clusters = tf.math.argmin(dist_matrix,axis=1).numpy()
+        clustering += list(mask_clusters)
+    else:
+      raise ValueError("cl_loss_type must be either km, or gmm")
+    return clustering
+
+
+
+
+
+  dataset_aux = tf.data.Dataset.from_tensor_slices(samples)
+  dataset = dataset_aux.shuffle(SHUFFLE_BUFFER_SIZE).batch(BATCH_SIZE)
+  dataset_not_shuffled = dataset_aux.batch(BATCH_SIZE)
+
+  if not os.path.isdir(directory):
+    os.mkdir(directory)
+
   ds_encoder = ds_encoder[:encoder_depth]
   ds_nn = ds_nn[(len(ds_nn)-nn_depth):]
   if nn_depth == 0 and encoder_depth != 0:
