@@ -241,12 +241,7 @@ def predict_clustering(cl_loss_type):
 
 
 
-
-
 def main():
-  if not os.path.isdir(directory):
-    os.mkdir(directory)
-
   ds_encoder = ds_encoder[:encoder_depth]
   ds_nn = ds_nn[(len(ds_nn)-nn_depth):]
   if nn_depth == 0 and encoder_depth != 0:
