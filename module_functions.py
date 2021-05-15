@@ -237,63 +237,7 @@ def predict_clustering(cl_loss_type):
 
 
 
-if ae_type == "mlp":
-  ds_encoder = [samples.shape[1]] + ds_encoder
-  ds_nn = [ds_encoder[-1]] + ds_nn
-  ds_decoder = list(reversed(ds_encoder))
-  autoencoder, encoder, decoder, nn = mlp_entities(ds_encoder,ds_decoder,last_layer_decoder_activation,ds_nn,last_layer_nn_activation)
-else:
-  ds_decoder = list(reversed(ds_encoder))
-  autoencoder, encoder, decoder, nn = cnn_entities(ds_encoder,ds_decoder,last_layer_decoder_activation,ds_nn,last_layer_nn_activation,samples.shape)
 
-# loc=tf.Variable(tf.zeros([prob_d]), name='loc')
-# scale_tril=tfp.util.TransformedVariable(
-#                       tf.eye(prob_d, dtype=tf.float32),
-#                       tfp.bijectors.FillScaleTriL(),
-#                       name="raw_scale_tril")
-# dist = tfd.MultivariateNormalTriL(
-#         loc=loc,
-#         scale_tril=scale_tril)
-
-logits = tf.Variable(np.array([0.]*number_of_dist,dtype=np.float32), name="logits",trainable=logits_trainable)
-# locs = [tf.Variable(np.random.rand(prob_d)*2.0-1.0, dtype=tf.float32, name='loc'+str(i)) for i in range(number_of_dist)]
-# locs = [[1.0,1.0],[-1.0,-1.0],[1.0,-1.0]]
-aux_loc = [-loc_inner_value for i in range(prob_d)]
-locs = []
-for i in range(prob_d):
-  local_aux_loc = np.array(aux_loc)
-  local_aux_loc[i] = -local_aux_loc[i]
-  locs.append(local_aux_loc)
-# locs_mean = np.mean(locs,axis=1)
-# for i in range(prob_d):
-#   locs[i] = locs[i] - locs_mean
-# locs = [float(i) for i in range(number_of_dist)]
-# locs = np.random.rand(number_of_dist,prob_d)*100.0
-locs = [tf.Variable(locs[i], dtype=tf.float32, name='loc'+str(i),trainable=locs_trainable) for i in range(number_of_dist)]
-# locs = [tf.Variable(locs[i], 
-#                     dtype=tf.float32, name='loc'+str(i)) for i in range(number_of_dist)]
-
-scale_trils = [tfp.util.TransformedVariable(
-                      tf.eye(prob_d, dtype=tf.float32),
-                      tfp.bijectors.FillScaleTriL(),
-                      name="raw_scale_tril"+str(i),trainable=covs_trainable) for i in range(number_of_dist)]
-if dist_type == "normal":
-  dist = tfd.Mixture(
-    cat=tfd.Categorical(logits=logits),
-    components=[
-      tfd.MultivariateNormalTriL(
-          loc=locs[i],
-          scale_tril=scale_trils[i]) for i in range(number_of_dist)
-  ])
-else:
-  dist = tfd.Mixture(
-    cat=tfd.Categorical(logits=logits),
-    components=[
-      tfd.MultivariateStudentTLinearOperator(
-          df=1,
-          loc=locs[i],
-          scale=tf.linalg.LinearOperatorLowerTriangular(scale_trils[i])) for i in range(number_of_dist)
-  ])
 
 
 def main():
@@ -308,6 +252,71 @@ def main():
   last_layer_decoder_activation = tf.keras.layers.Activation(last_layer_decoder_activation)
   last_layer_nn_activation = tf.keras.layers.Activation(last_layer_nn_activation)
   default_activation = tf.keras.layers.Activation(default_activation)
+
+
+
+
+  if ae_type == "mlp":
+    ds_encoder = [samples.shape[1]] + ds_encoder
+    ds_nn = [ds_encoder[-1]] + ds_nn
+    ds_decoder = list(reversed(ds_encoder))
+    autoencoder, encoder, decoder, nn = mlp_entities(ds_encoder,ds_decoder,last_layer_decoder_activation,ds_nn,last_layer_nn_activation)
+  else:
+    ds_decoder = list(reversed(ds_encoder))
+    autoencoder, encoder, decoder, nn = cnn_entities(ds_encoder,ds_decoder,last_layer_decoder_activation,ds_nn,last_layer_nn_activation,samples.shape)
+
+  # loc=tf.Variable(tf.zeros([prob_d]), name='loc')
+  # scale_tril=tfp.util.TransformedVariable(
+  #                       tf.eye(prob_d, dtype=tf.float32),
+  #                       tfp.bijectors.FillScaleTriL(),
+  #                       name="raw_scale_tril")
+  # dist = tfd.MultivariateNormalTriL(
+  #         loc=loc,
+  #         scale_tril=scale_tril)
+
+  logits = tf.Variable(np.array([0.]*number_of_dist,dtype=np.float32), name="logits",trainable=logits_trainable)
+  # locs = [tf.Variable(np.random.rand(prob_d)*2.0-1.0, dtype=tf.float32, name='loc'+str(i)) for i in range(number_of_dist)]
+  # locs = [[1.0,1.0],[-1.0,-1.0],[1.0,-1.0]]
+  aux_loc = [-loc_inner_value for i in range(prob_d)]
+  locs = []
+  for i in range(prob_d):
+    local_aux_loc = np.array(aux_loc)
+    local_aux_loc[i] = -local_aux_loc[i]
+    locs.append(local_aux_loc)
+  # locs_mean = np.mean(locs,axis=1)
+  # for i in range(prob_d):
+  #   locs[i] = locs[i] - locs_mean
+  # locs = [float(i) for i in range(number_of_dist)]
+  # locs = np.random.rand(number_of_dist,prob_d)*100.0
+  locs = [tf.Variable(locs[i], dtype=tf.float32, name='loc'+str(i),trainable=locs_trainable) for i in range(number_of_dist)]
+  # locs = [tf.Variable(locs[i], 
+  #                     dtype=tf.float32, name='loc'+str(i)) for i in range(number_of_dist)]
+
+  scale_trils = [tfp.util.TransformedVariable(
+                        tf.eye(prob_d, dtype=tf.float32),
+                        tfp.bijectors.FillScaleTriL(),
+                        name="raw_scale_tril"+str(i),trainable=covs_trainable) for i in range(number_of_dist)]
+  if dist_type == "normal":
+    dist = tfd.Mixture(
+      cat=tfd.Categorical(logits=logits),
+      components=[
+        tfd.MultivariateNormalTriL(
+            loc=locs[i],
+            scale_tril=scale_trils[i]) for i in range(number_of_dist)
+    ])
+  else:
+    dist = tfd.Mixture(
+      cat=tfd.Categorical(logits=logits),
+      components=[
+        tfd.MultivariateStudentTLinearOperator(
+            df=1,
+            loc=locs[i],
+            scale=tf.linalg.LinearOperatorLowerTriangular(scale_trils[i])) for i in range(number_of_dist)
+    ])
+
+
+
+
 
   # def train(dist, autoencoder, encoder, decoder, nn, samples):
   losses = []
