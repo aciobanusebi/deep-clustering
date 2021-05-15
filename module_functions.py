@@ -1,4 +1,7 @@
+import os
 import tensorflow as tf
+import tensorflow_probability as tfp
+tfd = tfp.distributions
 
 def cnn_entities(ds_encoder,ds_decoder,last_layer_decoder_activation,ds_nn,last_layer_nn_activation,samples_shape):
   encoder = []
