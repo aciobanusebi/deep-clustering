@@ -1,3 +1,5 @@
+import tensorflow as tf
+
 def cnn_entities(ds_encoder,ds_decoder,last_layer_decoder_activation,ds_nn,last_layer_nn_activation,samples_shape):
   encoder = []
   for i in range(0,len(ds_encoder)):
