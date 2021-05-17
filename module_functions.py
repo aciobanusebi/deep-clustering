@@ -6,13 +6,17 @@ tfd = tfp.distributions
 import matplotlib.pyplot as plt
 import numpy as np
 
-def main(samples,
+def main(read_model_from_file,
+    run,
+    samples,
     ae_type,
     dist_type,
     encoder_depth,
     nn_depth,
     id,
-    directory,
+    random_id,
+    data_name,
+    general_directory,
     lambdaa,
     cl_loss_type,
     var_features,
@@ -35,6 +39,32 @@ def main(samples,
     ds_nn,
     optimizer,
     epochs):
+
+  def read_model(directory): 
+    if len(nn.layers) > 0:
+      nn.load_weights(os.path.join(directory,"nn.h5"))
+    if len(autoencoder.layers) > 0:
+      encoder.load_weights(os.path.join(directory,"encoder.h5"))
+      decoder.load_weights(os.path.join(directory,"decoder.h5"))
+      autoencoder.load_weights(os.path.join(directory,"autoencoder.h5"))
+    
+    import pickle
+    with open(os.path.join(directory,"dist_parameters.pickle"), 'rb') as handle:
+        logits_numpy,locs_numpy,scale_trilis_numpy = pickle.load(handle)
+        logits.assign(logits_numpy)
+        for i in range(number_of_dist):
+          locs[i].assign(locs_numpy[i])
+          scale_trils[i].assign(scale_trilis_numpy[i])
+
+    with open(os.path.join(directory,"losses.pickle"), 'rb') as handle:
+        losses = pickle.load(handle)
+
+    with open(os.path.join(directory,"clustering.pickle"), 'rb') as handle:
+        clustering = pickle.load(handle)
+    file = open(os.path.join(directory,"epoch.txt"),"r")
+    epoch = int(file.read())
+    file.close()
+    return losses, clustering, epoch
 
   def cnn_entities(ds_encoder,ds_decoder,last_layer_decoder_activation,ds_nn,last_layer_nn_activation,samples_shape):
     encoder = []
@@ -128,7 +158,8 @@ def main(samples,
 
 
 
-  def save(epoch=None):
+  def save(directory,epoch=None):
+    import pickle
     if epoch is None:  
       with open(os.path.join(directory,"clustering.pickle"), 'wb') as handle:
           pickle.dump(clustering, handle)
@@ -249,7 +280,7 @@ def main(samples,
           # tf.print("loss2=",loss2)
       return loss, grads
 
-  def predict_clustering(cl_loss_type):
+  def predict_clustering(cl_loss_type, dataset_not_shuffled):
     clustering = []
     if cl_loss_type == "gmm":
       dist_cat_log_probs = [dist.cat.log_prob(i) for i in range(number_of_dist)]
@@ -269,18 +300,25 @@ def main(samples,
         clustering += list(mask_clusters)
     else:
       raise ValueError("cl_loss_type must be either km, or gmm")
-    return clustering
+    return clustering, x
 
 
-
+  
+  directory = os.path.join(general_directory,data_name,id,str(run))
+  random_directory = os.path.join(general_directory,data_name,random_id,str(run))
 
 
   dataset_aux = tf.data.Dataset.from_tensor_slices(samples)
   dataset = dataset_aux.shuffle(SHUFFLE_BUFFER_SIZE).batch(BATCH_SIZE)
   dataset_not_shuffled = dataset_aux.batch(BATCH_SIZE)
 
+  
+
   if not os.path.isdir(directory):
-    os.mkdir(directory)
+    os.makedirs(directory)
+  
+  if not os.path.isdir(random_directory):
+    os.makedirs(random_directory)
 
   ds_encoder = ds_encoder[:encoder_depth]
   ds_nn = ds_nn[(len(ds_nn)-nn_depth):]
@@ -353,11 +391,15 @@ def main(samples,
     ])
 
 
+  if read_model_from_file:
+    random_losses, random_clustering, random_epoch = read_model(random_directory)
+    losses, clustering, random_epoch = read_model(directory)
+    return random_losses[-1].numpy(),random_clustering, losses[-1].numpy(),clustering
 
 
 
   # def train(dist, autoencoder, encoder, decoder, nn, samples):
-  losses = []
+  
   # vars = []
   trainable_variables = dist.trainable_variables 
   if len(nn.layers) > 0:
@@ -378,7 +420,38 @@ def main(samples,
   if len(nn.layers) > 0:
     best_nn = tf.keras.models.clone_model(nn)
     best_nn.set_weights(nn.get_weights())
-  best_mean_loss = np.float32("inf")
+  
+
+
+  random_clustering, random_last_batch_x = predict_clustering(cl_loss_type, dataset_not_shuffled)
+  if plot_at_each_iteration:
+    plt.figure()
+    plt.title("After ini: Last batch of instances on the first 2 new features")
+    plt.scatter(random_last_batch_x[:,0],random_last_batch_x[:,1],c=random_clustering[(-len(random_last_batch_x)):])
+    plt.show()
+  mean_loss = 0
+  count = 0
+  for batch in dataset:
+    loss, grads = get_loss_and_grads(dist, nn, encoder, decoder, batch, trainable_variables, lambdaa, cl_loss_type, var_features, var_locs, reg_logits, kl_loss)
+    mean_loss += loss
+    count+=1
+    if np.isnan(loss):
+      break
+  mean_loss/=count
+  random_mean_loss = mean_loss
+
+  clustering = random_clustering
+  losses = [random_mean_loss]
+  save(random_directory,0)
+  save(random_directory)
+
+  
+  best_mean_loss = tf.constant(np.float32("inf"))
+  losses = [np.float32("inf")]
+  save(directory,-1)
+
+  clustering = None
+  losses = []
   for _ in range(epochs):
       print(_)
       mean_loss = 0
@@ -412,8 +485,8 @@ def main(samples,
           best_nn = tf.keras.models.clone_model(nn)
           best_nn.set_weights(nn.get_weights())
 
-        save(_)
         best_mean_loss = mean_loss
+        save(directory,_)
       # nll_loss = train(dist, autoencoder, encoder, decoder, nn, samples)
       if plot_at_each_iteration:
         plt.figure()
@@ -422,12 +495,11 @@ def main(samples,
         plt.ylabel('Cost function')
         plt.show()
 
-      output = nn(encoder(batch)).numpy()
-      dist_matrix = cdist(output,locs)
-      mask_clusters = tf.math.argmin(dist_matrix,axis=1).numpy()
-      plt.figure()
-      plt.scatter(output[:,0],output[:,1],c=mask_clusters)
-      plt.show()
+        one_batch_clustering, output = predict_clustering(cl_loss_type, [batch])
+        plt.figure()
+        plt.title("Last batch of instances on the first 2 new features")
+        plt.scatter(output[:,0],output[:,1],c=one_batch_clustering)
+        plt.show()
 
       # print(trainable_variables)
       # print("NN")
@@ -456,3 +528,7 @@ def main(samples,
   plt.xlabel('Epochs')
   plt.ylabel('Cost function')
   # trainable_variables
+
+  clustering, aaux = predict_clustering(cl_loss_type, dataset_not_shuffled)
+  save(directory,None)
+  return random_mean_loss.numpy(),random_clustering, best_mean_loss.numpy(),clustering
