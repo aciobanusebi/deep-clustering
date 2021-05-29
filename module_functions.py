@@ -38,7 +38,8 @@ def main(read_model_from_file,
     ds_encoder,
     ds_nn,
     optimizer,
-    epochs):
+    epochs,
+    l2_reg_on_nn):
 
   def read_model(directory): 
     if len(nn.layers) > 0:
@@ -109,8 +110,10 @@ def main(read_model_from_file,
     else:
       nn = [tf.keras.layers.Flatten(input_shape=samples_shape[1:])]
     for i in range(0,len(ds_nn)):
-      # nn.append(tf.keras.layers.Dense(ds_nn[i], kernel_regularizer=tf.keras.regularizers.l2()))
-      nn.append(tf.keras.layers.Dense(ds_nn[i], kernel_initializer="glorot_uniform"))
+      if l2_reg_on_nn:
+        nn.append(tf.keras.layers.Dense(ds_nn[i], kernel_regularizer=tf.keras.regularizers.l2(), kernel_initializer="glorot_uniform"))
+      else: 
+        nn.append(tf.keras.layers.Dense(ds_nn[i], kernel_initializer="glorot_uniform"))
       if i == len(ds_nn) - 1:
         nn.append(last_layer_nn_activation)
       else:
@@ -143,9 +146,12 @@ def main(read_model_from_file,
 
     nn = []
     for i in range(1,len(ds_nn)):
-      # nn.append(tf.keras.layers.Dense(ds_nn[i], input_shape=[ds_nn[i-1]], kernel_regularizer=tf.keras.regularizers.l2()))
+      if l2_reg_on_nn:
+        nn.append(tf.keras.layers.Dense(ds_nn[i], input_shape=[ds_nn[i-1]], kernel_regularizer=tf.keras.regularizers.l2(), kernel_initializer="glorot_uniform"))
+      else:
+        nn.append(tf.keras.layers.Dense(ds_nn[i], input_shape=[ds_nn[i-1]], kernel_initializer="glorot_uniform"))
       # nn.append(tf.keras.layers.Dense(ds_nn[i], input_shape=[ds_nn[i-1]]))
-      nn.append(tf.keras.layers.Dense(ds_nn[i], input_shape=[ds_nn[i-1]], kernel_initializer="glorot_uniform"))
+      
       if i == len(ds_nn) - 1:
         nn.append(last_layer_nn_activation)
       else:
@@ -353,20 +359,23 @@ def main(read_model_from_file,
   logits = tf.Variable(np.array([0.]*number_of_dist,dtype=np.float32), name="logits",trainable=logits_trainable)
   # locs = [tf.Variable(np.random.rand(prob_d)*2.0-1.0, dtype=tf.float32, name='loc'+str(i)) for i in range(number_of_dist)]
   # locs = [[1.0,1.0],[-1.0,-1.0],[1.0,-1.0]]
-  aux_loc = [-loc_inner_value for i in range(prob_d)]
-  locs = []
-  for i in range(prob_d):
-    local_aux_loc = np.array(aux_loc)
-    local_aux_loc[i] = -local_aux_loc[i]
-    locs.append(local_aux_loc)
-  # locs_mean = np.mean(locs,axis=1)
-  # for i in range(prob_d):
-  #   locs[i] = locs[i] - locs_mean
-  # locs = [float(i) for i in range(number_of_dist)]
-  # locs = np.random.rand(number_of_dist,prob_d)*100.0
-  locs = [tf.Variable(locs[i], dtype=tf.float32, name='loc'+str(i),trainable=locs_trainable) for i in range(number_of_dist)]
-  # locs = [tf.Variable(locs[i], 
-  #                     dtype=tf.float32, name='loc'+str(i)) for i in range(number_of_dist)]
+  if loc_inner_value is None:
+    locs = [tf.Variable(np.random.rand(prob_d), dtype=tf.float32, name='loc'+str(i),trainable=locs_trainable) for i in range(number_of_dist)]
+  else:
+    aux_loc = [-loc_inner_value for i in range(prob_d)]
+    locs = []
+    for i in range(prob_d):
+      local_aux_loc = np.array(aux_loc)
+      local_aux_loc[i] = -local_aux_loc[i]
+      locs.append(local_aux_loc)
+    # locs_mean = np.mean(locs,axis=1)
+    # for i in range(prob_d):
+    #   locs[i] = locs[i] - locs_mean
+    # locs = [float(i) for i in range(number_of_dist)]
+    # locs = np.random.rand(number_of_dist,prob_d)*100.0
+    locs = [tf.Variable(locs[i], dtype=tf.float32, name='loc'+str(i),trainable=locs_trainable) for i in range(number_of_dist)]
+    # locs = [tf.Variable(locs[i], 
+    #                     dtype=tf.float32, name='loc'+str(i)) for i in range(number_of_dist)]
 
   scale_trils = [tfp.util.TransformedVariable(
                         tf.eye(prob_d, dtype=tf.float32),
@@ -451,6 +460,7 @@ def main(read_model_from_file,
   save(directory,-1)
 
   clustering = None
+  save(directory,None)
   losses = []
   for _ in range(epochs):
       print(_)
@@ -481,6 +491,7 @@ def main(read_model_from_file,
           best_autoencoder = tf.keras.models.clone_model(autoencoder)
           best_autoencoder.set_weights(autoencoder.get_weights())
         best_dist = dist.copy()
+        print(locs)
         if len(nn.layers) > 0:
           best_nn = tf.keras.models.clone_model(nn)
           best_nn.set_weights(nn.get_weights())
@@ -518,17 +529,23 @@ def main(read_model_from_file,
   if len(autoencoder.layers) > 0:
     autoencoder = tf.keras.models.clone_model(best_autoencoder)
     autoencoder.set_weights(best_autoencoder.get_weights())
-  dist = best_dist.copy() # it has a flaw if its parameters are trainable, BUT none otherwise
+  dist = best_dist.copy() # it has a flaw so the line "losses, clustering, random_epoch = read_model(directory)" is introduced below
   if len(nn.layers) > 0:
     nn = tf.keras.models.clone_model(best_nn)
     nn.set_weights(best_nn.get_weights())
 
+  losses, clustering, random_epoch = read_model(directory)
 
   # nll_loss = train(dist, autoencoder, encoder, decoder, nn, samples)
   plt.plot(losses)
   plt.xlabel('Epochs')
   plt.ylabel('Cost function')
   # trainable_variables
+
+  plt.figure()
+  plt.imshow(nn(encoder(batch)))
+  plt.show()
+  print(dist.trainable_variables)
 
   clustering, aaux = predict_clustering(cl_loss_type, dataset_not_shuffled)
   save(directory,None)
