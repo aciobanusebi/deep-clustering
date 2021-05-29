@@ -30,8 +30,104 @@ Machine Learning, Clustering, Deep Clustering, k-means, Mixture of Gaussians, Re
   - clustering_exps_usps.ipynb [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aciobanusebi/deep-clustering/blob/main/clustering_exps_usps.ipynb): random, k-means, and EM/GMM clustering on the USPS dataset
   - clustering_exps_usps_PCA.ipynb [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aciobanusebi/deep-clustering/blob/main/clustering_exps_usps_PCA.ipynb): random, k-means, and EM/GMM clustering on the first 100 principal components of the USPS dataset
 - **deep_distributions_***
-  - deep_distributions_MAIN.ipynb [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aciobanusebi/deep-clustering/blob/main/deep_distributions_MAIN.ipynb): main.py in a .ipynb file
-  - deep_distributions_MAIN gmm normal.ipynb [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aciobanusebi/deep-clustering/blob/main/deep_distributions_MAIN%20gmm%20normal.ipynb): deep_distributions_MAIN.ipynb with the *gmm1* setup from the paper
-  - deep_distributions_MAIN gmm cauchy.ipynb [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aciobanusebi/deep-clustering/blob/main/deep_distributions_MAIN%20gmm%20cauchy.ipynb): deep_distributions_MAIN.ipynb with the *cmm1* setup from the paper
-  - deep_distributions_MAIN km1.ipynb [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aciobanusebi/deep-clustering/blob/main/deep_distributions_MAIN%20km1.ipynb): deep_distributions_MAIN.ipynb with the *km1* setup from the paper
-  - deep_distributions_MAIN km2.ipynb [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aciobanusebi/deep-clustering/blob/main/deep_distributions_MAIN%20km2.ipynb): deep_distributions_MAIN.ipynb with the *km50* setup from the paper
+  - **deep_distributions_MAIN.ipynb** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aciobanusebi/deep-clustering/blob/main/deep_distributions_MAIN.ipynb): main.py in a .ipynb file
+  - **deep_distributions_MAIN gmm normal.ipynb** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aciobanusebi/deep-clustering/blob/main/deep_distributions_MAIN%20gmm%20normal.ipynb): deep_distributions_MAIN.ipynb with the *gmm1* setup from the paper
+  - **deep_distributions_MAIN gmm cauchy.ipynb** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aciobanusebi/deep-clustering/blob/main/deep_distributions_MAIN%20gmm%20cauchy.ipynb): deep_distributions_MAIN.ipynb with the *cmm1* setup from the paper
+  - **deep_distributions_MAIN km1.ipynb** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aciobanusebi/deep-clustering/blob/main/deep_distributions_MAIN%20km1.ipynb): deep_distributions_MAIN.ipynb with the *km1* setup from the paper
+  - **deep_distributions_MAIN km2.ipynb** [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aciobanusebi/deep-clustering/blob/main/deep_distributions_MAIN%20km2.ipynb): deep_distributions_MAIN.ipynb with the *km50* setup from the paper
+
+## deep_distributions* hyperparameters
+- **dim_pca**: 
+  - None or a number; 
+  - how many PCs to retain; 
+  - cannot use CNN with this "on"
+- **n_runs**: 
+  - number; 
+  - how many independent runs of the model to try
+- **epochs**: 
+  - number; 
+  - number of epochs for one run
+- **read_model_from_file**: 
+  - True/False; 
+  - read the model from file?
+- **l2_reg_on_nn**: 
+  - True/False; 
+  - use L2 regularization on nn?
+- **data_name**: 
+  - "20news"/"mnist"/"usps"
+- **ae_type**: 
+  - "mlp"/"cnn"; 
+  - "cnn" works only for "mnist", "usps"
+- **dist_type**: 
+  - "normal"/"cauchy"; 
+  - the type of distribution if a mixture model is used; it is ignored if k-means is used
+- **encoder_depth**: 
+  - 0/1/2; 
+  - how many layers the encoder contains (the decoder is mirrored)
+- **nn_depth**: 
+  - 0/1/2/3; 
+  - how many layers nn contains
+- **lambdaa**: 
+  - positive real number; 
+  - <img src="https://latex.codecogs.com/gif.latex?\lambda_V"/> in the paper; 
+  - the importance of the variability loss
+- **cl_loss_type**: 
+  - "km"/"gmm"; 
+  - km stands for k-means and gmm for a mixture model (either gmm or cmm)
+- **general_directory**: 
+  - the models will be saved here
+- **var_features**: 
+  - True/False; 
+  - if True, the "variable features" loss (<img src="https://latex.codecogs.com/gif.latex?\text{loss}_V"/>) is added to the clustering loss
+- **var_locs**: 
+  - True/False; 
+  - if True, the "variable <img src="https://latex.codecogs.com/gif.latex?\mu"/>s" loss is added to the clustering loss
+- **reg_logits**: 
+  - True/False;
+  - if True, a regularization loss for logits (the <img src="https://latex.codecogs.com/gif.latex?\pi"/> probabilities should be close to the uniform distribution) is added to the clustering loss
+- **kl_loss**: 
+  - True/False;
+  - if True, a KL between each distribution in the mixture is added to the clustering loss
+- **logits_trainable**: 
+  - True/False; 
+  - if True, <img src="https://latex.codecogs.com/gif.latex?\pi"/>s are trainable
+- **locs_trainable**: 
+  - True/False; 
+  - if True, <img src="https://latex.codecogs.com/gif.latex?\mu"/>s are trainable
+- **covs_trainable**: 
+  - True/False; 
+  - if True, <img src="https://latex.codecogs.com/gif.latex?\Sigma"/>s are trainable
+- **loc_inner_value**: 
+  - a number; 
+  - <img src="https://latex.codecogs.com/gif.latex?\mu"/>s initialization is multiplied by this value; 
+  - if set to None, then we use uniform random init in [0,1]; 
+  - we used this random init when - starting the project
+- **BATCH_SIZE**: 
+  - number; 
+  - batch size
+- **SHUFFLE_BUFFER_SIZE**: 
+  - number; 
+  - shuffle buffer size
+- **prob_d**: 
+  - number; 
+  - the output dimensionality
+- **last_layer_decoder_activation**: 
+  - 'sigmoid'/'linear'/'relu'/'tanh'; 
+  - the output activation in the autoencoder
+- **last_layer_nn_activation**: 
+  - 'sigmoid'/'linear'/'relu'/'tanh'; 
+  - the output activation in nn
+- **default_activation**: 
+  - 'sigmoid'/'linear'/'relu'/'tanh'; 
+  - the hidden activations in the autoencoder and nn
+- **plot_at_each_iteration**: 
+  - True/False; 
+  - if True, useful plots are visualized at each iteration
+- **ds_encoder**: 
+  - list of numbers; 
+  - a list which gives the number of hidden units for MLP and filters for CNN in each layer of the encoder (the decoder is mirrored)
+- **ds_nn**: 
+  - list of numbers; 
+  - a list which gives the number of hidden units in each layer of nn
+- **optimizer**: 
+  - a tf.keras optimizer
