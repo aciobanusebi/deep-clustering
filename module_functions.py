@@ -518,12 +518,11 @@ def main(read_model_from_file,
   if len(autoencoder.layers) > 0:
     autoencoder = tf.keras.models.clone_model(best_autoencoder)
     autoencoder.set_weights(best_autoencoder.get_weights())
-  dist = best_dist.copy() # it has a flaw so the line "losses, clustering, random_epoch = read_model(directory)" is introduced below
+  dist = best_dist.copy() # it has a flaw if its parameters are trainable, BUT none otherwise
   if len(nn.layers) > 0:
     nn = tf.keras.models.clone_model(best_nn)
     nn.set_weights(best_nn.get_weights())
 
-  losses, clustering, random_epoch = read_model(directory)
 
   # nll_loss = train(dist, autoencoder, encoder, decoder, nn, samples)
   plt.plot(losses)
