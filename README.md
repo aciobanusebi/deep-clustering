@@ -133,23 +133,23 @@ Machine Learning, Clustering, Deep Clustering, k-means, Mixture of Gaussians, Re
   - a tf.keras optimizer
 
 ## Supplementary observations (on the MNIST dataset with 10 clusters)
-- **in our final models (km50, gmm1) if only one the two key ideas (fixed representatives, variable features) is present, then there are problems still (e.g., empty clusters); so, they are both equally important**
+- **in our final models (km50, gmm1) if only one of the two key ideas (fixed representatives, variable features) is present, then there are problems still (e.g., empty clusters); so, they are both equally important**
 - the algorithm is not deterministic since its random initialization of weights
-- since its random, the algorithm is not necessarily stable with respect to the output; but the hope is that in 10 runs we can obtain a good result
+- since it's random, the algorithm is not necessarily stable with respect to the output; but the hope is that in 10 runs we can obtain a good and approximately replicable result
 - the algorithm has the advantages of deep learning, e.g. it is trainable on GPU => fast, it is in _batch_ mode => scalable
 - the algorithm can be used as a replacement of the traditional clustering algorithms
-  - maybe the time is more appealing (it depends on a lot of hyperparameters, but the number of epochs is the first one to take into consideration)
-  - it has hyperparameters, so it more flexible (although this can be seen as a drawback)
+  - maybe the running time is more appealing (it depends on a lot of hyperparameters, but the number of epochs is the first one to be taken into consideration)
+  - it has hyperparameters, so it is more flexible (although this can be seen as a drawback)
   - for clustering
-  - for initializing the parameters of a deep k-means/GMM algorithm; as in https://arxiv.org/pdf/1511.06335.pdf "To initialize centroids, we run k-means with 20 restarts and select the best solution."; our algorithm can be also used for the initialization of the weights of a deep algorithm (pretraining), although our suggestion is that it won't be a good candidate; however, if done, this pretraining phase should be done not after a lot of epochs because the tendency of the algorithm is to map the points to the centroids/means, so the representation in the mapped space is not that useful after a great number of epochs
+  - for initializing the parameters of a deep k-means/GMM algorithm; as in https://arxiv.org/pdf/1511.06335.pdf "To initialize centroids, we run k-means with 20 restarts and select the best solution."; our algorithm can be also used for the initialization of the weights of a deep algorithm (pretraining), although our suggestion is that it won't be a good candidate for this; however, if done, this pretraining phase should be done not after a lot of epochs because the tendency of the algorithm is to map the points to the centroids/means, so the representation in the mapped space is not that useful after a great number of epochs
 - one run of the algorithm returns the model corresponding to the least loss across the epochs (not just the model after the last epoch)
-- if the algorithm is used as a dimensionality reduction algorithm, the number of epochs should not be great, because the tendency of the algorithm is to map the points to the centroids/means; plots in the mapped space after fitting can be visualized
+- if the algorithm is used as a dimensionality reduction algorithm, the number of epochs should not be large, because the tendency of the algorithm is to map the points to the centroids/means; plots in the mapped space after fitting can be visualized
 - the gmm1 algorithm can be considered an instance of a deep probability distribution
   - the drawback is that sampling is not possible
-- if the batch_size is equal to the number of images (70.000), then the results are around those (not the same!) obtained with the initialization (Init model) even if we use the variability <img src="https://latex.codecogs.com/gif.latex?\text{loss}_V"/> or not
+- if the batch_size is equal to the number of images (70.000), then the results are around those (not the same!) obtained with the initialization (Init model) even if we use the variability loss (<img src="https://latex.codecogs.com/gif.latex?\text{loss}_V"/>) or not
 - when using gmm1, an autoencoder with a depth-2 encoder can improve the results (0.59, 0.40, 0.49, 0.59);
   - the same model but without nn returns (0.58, 0.38, 0.50, 0.56)
-- when using km50, an autoencoder with a depth-2 encoder can worsen the results (0.40, 0.20, 0.33, 0.38); in the literature, the autoencoder is usually pre-trained; a non-pre-trained autoencoder (as we do) is perhaps not a good choice
+- when using km50, an autoencoder with a depth-2 encoder can worsen the results (0.40, 0.20, 0.33, 0.38); in the literature, the autoencoder is usually pretrained; a non-pretrained autoencoder (as we do) is perhaps not a good choice
   - the same model but without nn returns (0.35, 0.26, 0.40, 0.35)
 - if the representatives are learnable, then the results get poorer
 - a shallow CNN network does not give better results
@@ -158,9 +158,9 @@ Machine Learning, Clustering, Deep Clustering, k-means, Mixture of Gaussians, Re
   - apply it on new types of data, e.g. RNAseq
   - further search the literature for the idea of fixed representatives, fixed centroids in k-means etc.
   - our model vs our model with only the "linear" activation function; at the first sight (2 runs with linear with 1/2 layers in nn: 0.55/0.50 purity), the non-linear part gives better results on km50.
-  - other hyperpamater combinations
+  - other hyperparameter combinations
   - use the k-medians loss
   - theoretical analysis of the algorithm
   - compare the algorithm's results to {nonlinear dimensionality reduction (autoencoder, tSNE, UMAP) + clustering}
   - experiments on anomaly detection; although it can go wrong because of the tendency of the algorithm to map the points to the centroids/means
-  - use VAE instead of a AE (after the final model is constructed); if this works, this will make the algorithm mode deep than tranditional
+  - use VAE instead of a AE (after the final model is constructed); if this works, this will make the algorithm deeper than more traditional.
