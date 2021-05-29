@@ -132,7 +132,7 @@ Machine Learning, Clustering, Deep Clustering, k-means, Mixture of Gaussians, Re
 - **optimizer**: 
   - a tf.keras optimizer
 
-## Supplementary observations (on the MNIST dataset with 10 clusters)
+## Supplementary notes/observations (on the MNIST dataset with 10 clusters)
 - **in our final models (km50, gmm1) if only one of the two key ideas (fixed representatives, variable features) is present, then there are problems still (e.g., empty clusters); so, they are both equally important**
 - the algorithm is not deterministic since its random initialization of weights
 - since it's random, the algorithm is not necessarily stable with respect to the output; but the hope is that in 10 runs we can obtain a good and approximately replicable result
