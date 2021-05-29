@@ -14,7 +14,7 @@ def get_data_20news():
 
   return data, target
 
-def get_data_mnist():
+def get_data_mnist(k=10):
   import tensorflow as tf
   import numpy as np
   mnist = tf.keras.datasets.mnist
@@ -31,7 +31,9 @@ def get_data_mnist():
 
   samples = (x_train.reshape((x_train.shape[0],-1))/255.).astype(np.float32)
   
-  return samples, real_labels
+  indices = real_labels < k
+    
+  return samples[indices], real_labels[indices]
 
 def get_data_usps():
   import h5py
