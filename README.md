@@ -131,3 +131,10 @@ Machine Learning, Clustering, Deep Clustering, k-means, Mixture of Gaussians, Re
   - a list which gives the number of hidden units in each layer of nn
 - **optimizer**: 
   - a tf.keras optimizer
+
+## Supplementary observations on the MNIST dataset with 10 clusters
+- if the batch_size is equal to the number of images (70.000), then the results are around those (not the same!) obtained with the initialization (Init model) even if we use the variability <img src="https://latex.codecogs.com/gif.latex?\text{loss}_V"/> or not
+- when using gmm1, an autoencoder with a depth-2 encoder can improve the results (0.59, 0.40, 0.49, 0.59);
+  - the same model but without nn returns (0.58, 0.38, 0.50, 0.56)
+- when using km50, an autoencoder with a depth-2 encoder can worsen the results (0.40, 0.20, 0.33, 0.38);
+  - the same model but without nn returns (0.35, 0.26, 0.40, 0.35)
