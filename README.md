@@ -144,6 +144,8 @@ Machine Learning, Clustering, Deep Clustering, k-means, Mixture of Gaussians, Re
   - for initializing the parameters of a deep k-means/GMM algorithm; as in https://arxiv.org/pdf/1511.06335.pdf "To initialize centroids, we run k-means with 20 restarts and select the best solution."; our algorithm can be also used for the initialization of the weights of a deep algorithm (pretraining), although our suggestion is that it won't be a good candidate; however, if done, this pretraining phase should be done not after a lot of epochs because the tendency of the algorithm is to map the points to the centroids/means, so the representation in the mapped space is not that useful after a great number of epochs
 - one run of the algorithm returns the model corresponding to the least loss across the epochs (not just the model after the last epoch)
 - if the algorithm is used as a dimensionality reduction algorithm, the number of epochs should not be great, because the tendency of the algorithm is to map the points to the centroids/means; plots in the mapped space after fitting can be visualized
+- the gmm1 algorithm can be considered an instance of a deep probability distribution
+  - the drawback is that sampling is not possible
 - if the batch_size is equal to the number of images (70.000), then the results are around those (not the same!) obtained with the initialization (Init model) even if we use the variability <img src="https://latex.codecogs.com/gif.latex?\text{loss}_V"/> or not
 - when using gmm1, an autoencoder with a depth-2 encoder can improve the results (0.59, 0.40, 0.49, 0.59);
   - the same model but without nn returns (0.58, 0.38, 0.50, 0.56)
@@ -157,3 +159,8 @@ Machine Learning, Clustering, Deep Clustering, k-means, Mixture of Gaussians, Re
   - further search the literature for the idea of fixed representatives, fixed centroids in k-means etc.
   - our model vs our model with only the "linear" activation function; at the first sight (2 runs with linear with 1/2 layers in nn: 0.55/0.50 purity), the non-linear part gives better results on km50.
   - other hyperpamater combinations
+  - use the k-medians loss
+  - theoretical analysis of the algorithm
+  - compare the algorithm's results to {nonlinear dimensionality reduction (autoencoder, tSNE, UMAP) + clustering}
+  - experiments on anomaly detection; although it can go wrong because of the tendency of the algorithm to map the points to the centroids/means
+  - use VAE instead of a AE (after the final model is constructed); if this works, this will make the algorithm mode deep than tranditional
