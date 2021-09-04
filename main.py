@@ -33,7 +33,7 @@ cl_loss_type = "km" # "km", "gmm"
 id = f"{cl_loss_type}_{ae_type}_{dist_type}_{encoder_depth}_{nn_depth}_{int(lambdaa)}"
 random_id = f"random_{id}"
 print(id)
-general_directory = "E:/paper-2021"
+general_directory = "."
 
 var_features = True # True/False
 var_locs = False # True/False
