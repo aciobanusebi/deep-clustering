@@ -1,5 +1,7 @@
 # Fixed Representatives and Variable Features: From Regularized Deep Clustering to Classic Clustering
 
+https://ieeexplore.ieee.org/document/9548500
+
 **Later edit important for replicating the results**: We ran 10 times our proposed algorithms and picked the best one in terms of loss minimization. Moreover, the optimizer evolved over the runs, i.e. we had a single optimizer over the 10 runs for a specific algorithm.
 
 # Paper abstract
